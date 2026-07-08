@@ -1,4 +1,4 @@
-# from sentence_transformers import SentenceTransformer
+import argparse
 
 from load_malicious import load_malicious
 
@@ -58,28 +58,47 @@ def embed_sentences(sentences, tokenizer, model, batch_size):
         return sentence_embeddings
         
 
-print("Preparing data...")
-X_train, y_train, X_val, y_val, X_test, y_test = load_malicious()
-# X_train = pd.concat([X_train, X_val], ignore_index=True)
-# y_train = pd.concat([y_train, y_val], ignore_index=True)
-print("Data ready.")
+def main(split):
+    print("Preparing data...")
+    X_train, y_train, X_val, y_val, X_test, y_test = load_malicious()
+    # X_train = pd.concat([X_train, X_val], ignore_index=True)
+    # y_train = pd.concat([y_train, y_val], ignore_index=True)
+    splits = {"train": X_train, "val": X_val, "test": X_test}
+    X = splits[split]
+    print("Data ready.")
 
-# Sentences we want sentence embeddings for
-print("Converting sentences to list...")
-sentences = X_train.tolist()
-print(len(sentences))
+    # Sentences we want embeddings for
+    print("Converting sentences to list...")
+    sentences = X.tolist()
+    print(len(sentences))
 
-tokenizer, model = load_model()
+    tokenizer, model = load_model()
 
-sentence_embeddings = embed_sentences(sentences, tokenizer, model, BATCH_SIZE)
+    sentence_embeddings = embed_sentences(sentences, tokenizer, model, BATCH_SIZE)
 
-print("Sentence embeddings:")
-print(sentence_embeddings)
-print(sentence_embeddings.shape)
+    print("Sentence embeddings:")
+    print(sentence_embeddings)
+    print(sentence_embeddings.shape)
 
-print("Saving embeddings")
-torch.save(sentence_embeddings, "train_embeddings.pt")
-print("Saved successfully.")
+    output_file = f"{split}_embeddings.pt"
+    print(f"Saving embeddings to {output_file}")
+    torch.save(sentence_embeddings, output_file)
+    print("Saved successfully.")
 
-sentence_embeddings = torch.load("train_embeddings.pt")
-print(sentence_embeddings.shape)
+# sentence_embeddings = torch.load("train_embeddings.pt")
+# print(sentence_embeddings.shape)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Embed a malicious prompt-dataset wth a sentence transformer"
+    )
+    parser.add_argument(
+        "--split",
+        choices=["train", "val", "test"],
+        help="Which dataset split to embed (default: train).",
+    )
+    args = parser.parse_args()
+
+    main(args.split)
+
+### run : python vectorize.py --split train/val/test
