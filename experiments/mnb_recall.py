@@ -1,12 +1,20 @@
-import pandas as pd
+print("Starting...")
 
+print("Importing pandas...")
+import pandas as pd
+print("Importing numpy...")
+import numpy as np
+
+print("Importing scikit-learn libraries...")
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer, fbeta_score
 
+print("Importing load data...")
 from load_data import load_data
+print("Importing evaluate...")
 from evaluate import evaluate
 import time
 
@@ -27,12 +35,13 @@ def load_classifier(X_train, y_train):
     param_grid = {
         "vectorizer__stop_words": [None, "english"],
         "vectorizer__ngram_range": [(1, 1), (1, 2)],
-        "model__alpha": [0.1, 0.5, 1.0, 2.0]
+        "model__alpha": [0.1, 0.5, 1.0, 2.0],
+        "vectorizer__min_df": [1, 2, 5]
     }
 
     fbeta = make_scorer(
         fbeta_score,
-        beta=2,         # larger beta -> more recall 3, 5
+        beta=3,         # larger beta -> more recall 3, 5
         pos_label=1
     )
 
@@ -50,32 +59,61 @@ def load_classifier(X_train, y_train):
     grid.fit(X_train, y_train)
 
     print("Best parameters:", grid.best_params_)
-    print("Best CV accuracy:", grid.best_score_)
+    print("Best CV F-beta:", grid.best_score_)
 
     # Return best model
     return grid.best_estimator_
 
-
 def predict(model, X, y):
-    probs = model.predict_proba(X)
-    preds = model.predict(X)
+# def predict(model, X_train, y_train, X_val, y_val, X_test , y_test):
+    # probs = model.predict_proba(X)
+    # preds = model.predict(X)
 
-    y_true = y
+    # probs = model.predict_proba(X)[:,1]
+    probs = model.predict_proba(X)[:, 1]
+
+    # best_threshold = 0.5
+    # best_score = -1
+
+    # for threshold in np.arange(0.01, 1.00, 0.01):
+    #     preds = (probs >= threshold).astype(int)
+    #     score = fbeta_score(y_val, preds, beta=3)
+
+    #     if score > best_score:
+    #         best_score = score
+    #         best_threshold = threshold
+
+    # print(best_threshold)
+    # print(best_score)
+
+    # # retrain on train + validation
+    # X_train = pd.concat([X_train, X_val], ignore_index=True)
+    # y_train = pd.concat([y_train, y_val], ignore_index=True)
+
+    # final_model = load_classifier(X_train, y_train)
+
+    # # evaluate on test
+    # probs = final_model.predict_proba(X_test)[:, 1]
+    # preds = (probs >= best_threshold).astype(int)
+
+    preds = (probs >= 0.3).astype(int)
+
+    y_true = y_test
 
     false_mask = preds != y_true
 
-    false_samples = X[false_mask]
+    false_samples = X_test[false_mask]
     false_probs = probs[false_mask]
     false_preds = preds[false_mask]
     false_true = y_true[false_mask]
 
-    false_confidence = false_probs.max(axis=1)
+    confidence = np.maximum(false_probs, 1 - false_probs)
 
     stats = {
         "probs": false_probs,
         "preds": false_preds,
         "true": false_true,
-        "confidence": false_confidence,
+        "confidence": confidence,
     }
     # print(f"Misclassified samples: {len(false_true)}")
     # print(stats["confidence"][:10])
@@ -84,7 +122,7 @@ def predict(model, X, y):
         false_samples,
         false_preds,
         false_true,
-        false_confidence,
+        confidence,
     ):
         print(f"Text      : {sample}")
         print(f"Predicted : {pred}")
@@ -94,26 +132,21 @@ def predict(model, X, y):
 
     return preds, stats
 
+print("Ready!")
 
 print("Preparing data...")
 X_train, y_train, X_val, y_val, X_test, y_test = load_data()
 X_train = pd.concat([X_train, X_val], ignore_index=True)
 y_train = pd.concat([y_train, y_val], ignore_index=True)
-print("Data ready.")
 
 print("Loading classifier...")
 model = load_classifier(X_train, y_train)
-print("Classifier ready.")
 
 print("Making predictions...")
 start = time.perf_counter()
-
 predictions, stats = predict(model, X_test, y_test)
-
 end = time.perf_counter()
-
 total_latency = end - start
-print("Predictions ready.")
 
 truth = y_test
 
@@ -127,7 +160,6 @@ evaluate(
     total_latency,
     len(truth)
 )
-
 print("Metrics ready.")
 
 # def predict_text(model, text):

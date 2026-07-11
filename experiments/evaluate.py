@@ -29,6 +29,8 @@ def evaluate(truth, predictions, MODEL_NAME, feature_type, vectorizer, total_lat
     avg_latency = total_latency / num_samples if num_samples else None
 
     print(f"Accuracy: {accuracy:.4f}")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall: {recall:.4f}")
 
     # Append metrics
     metrics_df = pd.DataFrame([{

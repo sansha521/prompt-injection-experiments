@@ -56,9 +56,27 @@ def embed_sentences(sentences, tokenizer, model, batch_size):
         print("Done.")
 
         return sentence_embeddings
-        
 
+def embed_a_sentence(sentence):
+    tokenizer, model = load_model()
+
+    embedding = embed_sentences(
+        [sentence],      # wrap in a list
+        tokenizer,
+        model,
+        batch_size=1
+    )
+
+    return embedding    
+
+# def main(split=None, sentence=None):
 def main(split):
+
+    tokenizer, model = load_model()
+
+    # if sentence is not None:
+    #     sentences = [sentence]
+    # else:
     print("Preparing data...")
     X_train, y_train, X_val, y_val, X_test, y_test = load_malicious()
     # X_train = pd.concat([X_train, X_val], ignore_index=True)
@@ -70,20 +88,22 @@ def main(split):
     # Sentences we want embeddings for
     print("Converting sentences to list...")
     sentences = X.tolist()
-    print(len(sentences))
 
-    tokenizer, model = load_model()
-
+    print(f"Embedding {len(sentences)} sentence(s)...")
     sentence_embeddings = embed_sentences(sentences, tokenizer, model, BATCH_SIZE)
 
     print("Sentence embeddings:")
     print(sentence_embeddings)
     print(sentence_embeddings.shape)
 
+    # if split is not None:
     output_file = f"{split}_embeddings.pt"
     print(f"Saving embeddings to {output_file}")
     torch.save(sentence_embeddings, output_file)
     print("Saved successfully.")
+    # else:
+    #     print("Embedding for input sentence:")
+    #     print(sentence_embeddings[0])
 
 # sentence_embeddings = torch.load("train_embeddings.pt")
 # print(sentence_embeddings.shape)
@@ -92,11 +112,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Embed a malicious prompt-dataset wth a sentence transformer"
     )
+
+    # group = parser.add_mutually_exclusive_group(required=True)
+
     parser.add_argument(
         "--split",
         choices=["train", "val", "test"],
         help="Which dataset split to embed (default: train).",
     )
+
+    # group.add_argument(
+    #     "--sentence",
+    #     type=str,
+    #     help="A single sentence to embed."
+    # )
+
     args = parser.parse_args()
 
     main(args.split)

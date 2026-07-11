@@ -56,6 +56,16 @@ def apply_pca(embeddings_path):
 
     print(f"Saved reduced emebddigns to {output_path}")
 
+def apply_a_pca(embedding):
+    print(f"Loading PCA mode from {PCA_MODEL_PATH}")
+    pca = joblib.load(PCA_MODEL_PATH)
+
+    print("Applying PCA...")
+    reduced = pca.transform(embedding)
+
+    # print(reduced)
+    return reduced
+
 
 def main(split):
     embeddings_path = Path(f"{split}_embeddings.pt")

@@ -2,5 +2,11 @@ transformers
 torch
 pandas
 scikit-learn
-optimum[onnxruntime]
+# optimum[onnxruntime]
 sentence-transformers
+matplotlib
+
+
+### create .venv manually (Ctrl + Shift + P) and 
+# Python: Create environment -> select .venv
+# Python: run environment -> select the option that sets up source at activation
